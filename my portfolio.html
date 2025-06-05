@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Girly Hangman Game</title>
+  <style>
+    body {
+      background-color: #ffe4ec;
+      font-family: 'Segoe UI', sans-serif;
+      text-align: center;
+      padding: 30px;
+      color: #6b1e40;
+    }
+
+    h1 {
+      font-size: 3rem;
+      text-shadow: 1px 1px #fff;
+    }
+
+    #word {
+      font-size: 2.5rem;
+      letter-spacing: 10px;
+      margin: 20px;
+    }
+
+    #letters {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .letter {
+      background-color: #fff0f5;
+      border: 2px solid #ff69b4;
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-size: 1.2rem;
+      font-weight: bold;
+      cursor: pointer;
+      color: #d63384;
+      transition: all 0.3s ease;
+    }
+
+    .letter:hover:not(.disabled) {
+      background-color: #ffe4e1;
+      transform: scale(1.1);
+    }
+
+    .disabled {
+      background-color: #ffe4e1;
+      border-color: #999;
+      cursor: not-allowed;
+      color: #aaa;
+    }
+
+    #message {
+      font-size: 1.6rem;
+      margin: 20px 0;
+    }
+
+    #wrong {
+      font-weight: bold;
+      font-size: 1.2rem;
+    }
+
+    svg {
+      width: 200px;
+      height: 250px;
+      margin: 20px auto;
+    }
+
+    .hide {
+      display: none;
+    }
+
+    #restartBtn {
+      padding: 10px 20px;
+      font-size: 1rem;
+      margin-top: 20px;
+      background-color: #ff69b4;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    #restartBtn:hover {
+      background-color: #ff1493;
+    }
+  </style>
+</head>
+<body>
+  <h1>💖 Girly Hangman 💖</h1>
+  <svg viewBox="0 0 200 250">
+    <!-- Gallows -->
+    <line x1="20" y1="230" x2="180" y2="230" stroke="#d63384" stroke-width="4"/>
+    <line x1="60" y1="230" x2="60" y2="20" stroke="#d63384" stroke-width="4"/>
+    <line x1="60" y1="20" x2="140" y2="20" stroke="#d63384" stroke-width="4"/>
+    <line x1="140" y1="20" x2="140" y2="50" stroke="#d63384" stroke-width="4"/>
+    
+    <!-- Body parts (hide initially) -->
+    <circle id="head" cx="140" cy="70" r="20" stroke="#d63384" stroke-width="4" fill="none" class="hide"/>
+    <line id="body" x1="140" y1="90" x2="140" y2="150" stroke="#d63384" stroke-width="4" class="hide"/>
+    <line id="leftArm" x1="140" y1="100" x2="110" y2="130" stroke="#d63384" stroke-width="4" class="hide"/>
+    <line id="rightArm" x1="140" y1="100" x2="170" y2="130" stroke="#d63384" stroke-width="4" class="hide"/>
+    <line id="leftLeg" x1="140" y1="150" x2="110" y2="190" stroke="#d63384" stroke-width="4" class="hide"/>
+    <line id="rightLeg" x1="140" y1="150" x2="170" y2="190" stroke="#d63384" stroke-width="4" class="hide"/>
+  </svg>
+
+  <div id="word">_ _ _ _</div>
+  <p>Wrong guesses: <span id="wrong">0</span> / 6</p>
+  <p id="message"></p>
+  <div id="letters"></div>
+  <button id="restartBtn" onclick="location.reload()">🔁 Restart</button>
+
+  <!-- Sound Effects -->
+  <audio id="clickSound" src="https://cdn.pixabay.com/audio/2022/03/15/audio_96ba007b22.mp3"></audio>
+  <audio id="winSound" src="https://cdn.pixabay.com/audio/2021/09/13/audio_6947f35bfb.mp3"></audio>
+  <audio id="loseSound" src="https://cdn.pixabay.com/audio/2022/03/15/audio_c60e0a5d0a.mp3"></audio>
+
+  <script>
+    const words = [
+      "lipstick", "mascara", "handbag", "skincare", "bracelet", "princess",
+      "confidence", "eyeliner", "sisterhood", "nailpolish", "goddess", "mirror",
+      "fashionista", "perfume", "hairstyle", "blush", "accessory", "heels", "dresses", "clutch"
+    ];
+
+    const word = words[Math.floor(Math.random() * words.length)];
+    const maxWrong = 6;
+    let guessed = [];
+    let wrong = 0;
+
+    const wordDisplay = document.getElementById("word");
+    const lettersDiv = document.getElementById("letters");
+    const message = document.getElementById("message");
+    const wrongDisplay = document.getElementById("wrong");
+
+    const bodyParts = [
+      "head", "body", "leftArm", "rightArm", "leftLeg", "rightLeg"
+    ];
+
+    const clickSound = document.getElementById("clickSound");
+    const winSound = document.getElementById("winSound");
+    const loseSound = document.getElementById("loseSound");
+
+    function updateWord() {
+      wordDisplay.textContent = word
+        .split('')
+        .map(letter => guessed.includes(letter) ? letter : "_")
+        .join(' ');
+    }
+
+    function showBodyPart(index) {
+      document.getElementById(bodyParts[index]).classList.remove("hide");
+    }
+
+    function endGame(win) {
+      message.textContent = win
+        ? "👑 Yaaas! You got it girl!"
+        : `💔 Oh no! The word was "${word}".`;
+      document.querySelectorAll('.letter').forEach(btn => btn.classList.add("disabled"));
+      (win ? winSound : loseSound).play();
+    }
+
+    function createLetterButtons() {
+      for (let i = 65; i <= 90; i++) {
+        const btn = document.createElement("div");
+        btn.textContent = String.fromCharCode(i);
+        btn.classList.add("letter");
+        btn.addEventListener("click", function () {
+          if (btn.classList.contains("disabled")) return;
+          btn.classList.add("disabled");
+          clickSound.play();
+
+          const letter = btn.textContent.toLowerCase();
+          if (word.includes(letter)) {
+            guessed.push(letter);
+            updateWord();
+            if (word.split('').every(l => guessed.includes(l))) {
+              endGame(true);
+            }
+          } else {
+            showBodyPart(wrong);
+            wrong++;
+            wrongDisplay.textContent = wrong;
+            if (wrong >= maxWrong) {
+              endGame(false);
+            }
+          }
+        });
+        lettersDiv.appendChild(btn);
+      }
+    }
+
+    // Init
+    updateWord();
+    createLetterButtons();
+  </script>
+</body>
+</html>
